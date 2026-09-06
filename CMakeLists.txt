@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(recovery
-    test.cpp
+    main.cpp
     FAT32_BPB.cpp
     FAT32_FAT.cpp
     FAT32_Dir.cpp
