@@ -1,6 +1,5 @@
 #include "common/FAT32_FAT.h"
 #include "common/RecoveryHeader.h"
-#include <stdexcept>
 
 FAT32_FAT::FAT32_FAT(FAT32_BPB &bpb) : BPB(bpb) {}
 

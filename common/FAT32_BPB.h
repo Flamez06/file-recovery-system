@@ -12,6 +12,7 @@ class FAT32_BPB
 private:
     friend class FAT32_FAT;
     friend class FAT32_Directory;
+    friend class FAT32_Recovery;
     std::ifstream file;
     uint16_t bytesPerSec;
     uint8_t secPerCluster;

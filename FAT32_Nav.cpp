@@ -1,13 +1,18 @@
 #include "common/FAT32_BPB.h"
 #include "common/FAT32_Dir.h"
 #include "common/RecoveryHeader.h"
+#include "common/FAT32_Recovery.h"
+
+
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <unordered_map>
 #include <optional>
 #include <algorithm>
 
 const uint32_t ROOT_FLAG = 0xFFFFFFFF;
+std::unordered_map<uint32_t,FAT32_DirEntry> deletedFilesMap; // Map to store deleted files with their starting cluster as the key
 std::string formatFilename(const FAT32_DirEntry &entry) // LFN NOT HANDLED YET
 {
     uint8_t cleanName[11];
@@ -28,34 +33,75 @@ std::string formatFilename(const FAT32_DirEntry &entry) // LFN NOT HANDLED YET
     return base;
 }
 
+void recoverFile(int serialNumber, FAT32_Recovery &recovery, FAT32_Directory &dir)
+{
+    auto it = deletedFilesMap.find(serialNumber);
+    if (it == deletedFilesMap.end())
+    {
+        std::cerr << "ERROR: Invalid serial number\n";
+        return;
+    }
+
+    const FAT32_DirEntry &entry = it->second;
+    uint32_t startCluster = dir.getFirstCluster(entry);
+    uint32_t fileSize = entry.fileSize;
+
+    try
+    {
+        std::vector<char> fileData = recovery.readContiguousFile(startCluster, fileSize);
+        std::string filename = "RECOVERED" + formatFilename(entry);
+
+        std::string outputPath = "recovered/" + filename;
+        std::ofstream outFile(outputPath, std::ios::binary);
+        if (!outFile)
+        {
+            std::cerr << "ERROR: Could not create output file\n";
+            return;
+        }
+        outFile.write(fileData.data(), fileData.size());
+        outFile.close();
+        std::cout << "File recovered successfully: " << filename << "\n";
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "ERROR: " << e.what() << "\n";
+    }
+}
+
 void listDirectory(FAT32_Directory &dir, uint32_t clusterNumber)
 {
+    deletedFilesMap.clear(); // Clear the map before listing the directory
     std::cout << std::left
+              << std::setw(10) << "[SL_NO.]"
               << std::setw(25) << "[Name]"
               << std::setw(12) << "[Type]"
               << std::setw(15) << "[Size]"
               << "[Status]" << std::endl;           // status shows active/deleted
     std::cout << std::string(65, '-') << std::endl; // just terminal formatting
-
-    dir.walkDirectory(clusterNumber, [&dir](const FAT32_DirEntry &entry)
-                      {
+    uint32_t serialNumber = 1;
+    dir.walkDirectory(clusterNumber, [&dir, &serialNumber](const FAT32_DirEntry &entry){
         if (entry.name[0] == '.') return true;
         bool isDel = dir.isDeleted(entry);
         bool isDir = dir.isDirectory(entry);
 
         if(isDel && isDir) return true;
-
+        if(isDel) {
+            deletedFilesMap[serialNumber] = entry; // Store deleted file in the map
+        }
+        std::string serialStr = std::to_string(serialNumber);
         std::string filename = formatFilename(entry);
         std::string typeStr = isDir? "<DIR>":"<FILE>";
         std::string statusStr = isDel? "Deleted":"Active";
         std::string sizeStr = std::to_string(entry.fileSize) + " B";
 
         std::cout << std::left 
+                  << std::setw(10) << serialStr
                   << std::setw(25) << filename 
                   << std::setw(12) << typeStr 
                   << std::setw(15) << sizeStr
                   << statusStr << std::endl; 
         return true; });
+        serialNumber++;
 }
 
 std::optional<uint32_t> changeDirectory(FAT32_Directory &dir, uint32_t currentCluster, std::string &arg)
@@ -82,7 +128,7 @@ std::optional<uint32_t> changeDirectory(FAT32_Directory &dir, uint32_t currentCl
     return std::nullopt;
 }
 
-void directoryNav(FAT32_Directory &dir)
+void directoryNav(FAT32_Directory &dir,FAT32_Recovery &rec)
 {
     uint32_t currentCluster = dir.getRootCluster();
 
@@ -96,7 +142,10 @@ void directoryNav(FAT32_Directory &dir)
         {
             listDirectory(dir, currentCluster);
         }
-
+        else if (command  == "recover"){
+            std :: cin >> arg;
+            recoverFile(std::stoi(arg), rec, dir);
+        }
         else if (command == "cd")
         {
             std::cin >> arg;
