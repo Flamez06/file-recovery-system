@@ -95,13 +95,13 @@ void listDirectory(FAT32_Directory &dir, uint32_t clusterNumber)
         std::string sizeStr = std::to_string(entry.fileSize) + " B";
 
         std::cout << std::left 
-                  << std::setw(10) << serialStr
+                  << std::setw(10) << serialNumber++
                   << std::setw(25) << filename 
                   << std::setw(12) << typeStr 
                   << std::setw(15) << sizeStr
                   << statusStr << std::endl; 
         return true; });
-        serialNumber++;
+
 }
 
 std::optional<uint32_t> changeDirectory(FAT32_Directory &dir, uint32_t currentCluster, std::string &arg)
