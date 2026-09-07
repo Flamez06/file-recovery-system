@@ -107,7 +107,18 @@ make
 cd ..
 ./build/<executable-name>
 ```
+## Interactive Shell Commands
 
+This utility features a custom interactive shell with a limited set of commands for navigation and recovery. 
+
+### Available Commands
+
+*   **`ls`** : Lists all files and directories in the current location, including deleted ones.
+*   **`cd <name>`** : Changes the current directory to the specified folder `<name>`.
+*   **`cd .`** : Refers to the current directory (effectively does nothing).
+*   **`cd ..`** : Moves up one level to the parent directory.
+*   **`recover <serial>`** : Executes the recovery sequence for the item matching the provided `<serial>` no.
+*   **`exit`** : Terminates the interactive shell session.
 
 ## Project Structure
 
@@ -126,6 +137,7 @@ file-recovery-system/
 │   ├── FAT32_FAT.h             # FAT table interface
 │   ├── FAT32_Dir.h             # Directory entry definitions
 │   ├── FAT32_Recovery.h        # File recovery interface
+│   └── RecoveryHeader.h        # Commonly used recovery flags
 │
 ├── CMakeLists.txt              # Build configuration
 ├── fat32.img                   # FAT32 disk image
