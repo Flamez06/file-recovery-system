@@ -116,23 +116,20 @@ file-recovery-system/
 │
 ├── main.cpp                    # Program entry point
 ├── FAT32_Nav.cpp               # Interactive directory navigation
+├── FAT32_BPB.cpp               # BPB parsing and filesystem offsets
+├── FAT32_FAT.cpp               # FAT cluster chain handling
+├── FAT32_Dir.cpp               # Directory parsing and traversal
+├── FAT32_Recovery.cpp          # Deleted file recovery logic
 │
 ├── common/
 │   ├── FAT32_BPB.h             # FAT32 BPB definitions
-│   ├── FAT32_BPB.cpp           # BPB parsing and filesystem offsets
-│   │
 │   ├── FAT32_FAT.h             # FAT table interface
-│   ├── FAT32_FAT.cpp            # FAT cluster chain handling
-│   │
 │   ├── FAT32_Dir.h             # Directory entry definitions
-│   ├── FAT32_Dir.cpp            # Directory parsing and traversal
-│   │
-│   ├── FAT32_Recovery.h         # File recovery interface
-│   └── FAT32_Recovery.cpp       # Deleted file recovery logic
+│   ├── FAT32_Recovery.h        # File recovery interface
 │
-├── CMakeLists.txt               # Build configuration
-├── fat32.img                    # FAT32 disk image
+├── CMakeLists.txt              # Build configuration
+├── fat32.img                   # FAT32 disk image
 │                               
-├── src/                         # Folder for preview image
+├── src/                        # Folder for preview image
 └── recovered/
     └── ...                      # Recovered files
