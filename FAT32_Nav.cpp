@@ -3,7 +3,6 @@
 #include "common/RecoveryHeader.h"
 #include "common/FAT32_Recovery.h"
 
-
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -11,9 +10,8 @@
 #include <optional>
 #include <algorithm>
 
-const uint32_t ROOT_FLAG = 0xFFFFFFFF;
-std::unordered_map<uint32_t,FAT32_DirEntry> deletedFilesMap; // Map to store deleted files with their starting cluster as the key
-std::string formatFilename(const FAT32_DirEntry &entry) // LFN NOT HANDLED YET
+std::unordered_map<uint32_t, FAT32_DirEntry> deletedFilesMap; // Map to store deleted files with their starting cluster as the key
+std::string formatFilename(const FAT32_DirEntry &entry)       // LFN NOT HANDLED YET
 {
     uint8_t cleanName[11];
     std::copy(std::begin(entry.name), std::end(entry.name), cleanName);
@@ -38,8 +36,16 @@ void recoverFile(int serialNumber, FAT32_Recovery &recovery, FAT32_Directory &di
     auto it = deletedFilesMap.find(serialNumber);
     if (it == deletedFilesMap.end())
     {
-        std::cerr << "ERROR: Invalid serial number\n";
-        return;
+        if (deletedFilesMap.empty()) // map must be initialized first
+        {
+            std::cerr << "You must ls in this directory atleast once before attempting recovery \n";
+            return;
+        }
+        else
+        {
+            std::cerr << "ERROR: Invalid serial number\n";
+            return;
+        }
     }
 
     const FAT32_DirEntry &entry = it->second;
@@ -79,7 +85,8 @@ void listDirectory(FAT32_Directory &dir, uint32_t clusterNumber)
               << "[Status]" << std::endl;           // status shows active/deleted
     std::cout << std::string(65, '-') << std::endl; // just terminal formatting
     uint32_t serialNumber = 1;
-    dir.walkDirectory(clusterNumber, [&dir, &serialNumber](const FAT32_DirEntry &entry){
+    dir.walkDirectory(clusterNumber, [&dir, &serialNumber](const FAT32_DirEntry &entry)
+                      {
         if (entry.name[0] == '.') return true;
         bool isDel = dir.isDeleted(entry);
         bool isDir = dir.isDirectory(entry);
@@ -101,7 +108,6 @@ void listDirectory(FAT32_Directory &dir, uint32_t clusterNumber)
                   << std::setw(15) << sizeStr
                   << statusStr << std::endl; 
         return true; });
-
 }
 
 std::optional<uint32_t> changeDirectory(FAT32_Directory &dir, uint32_t currentCluster, std::string &arg)
@@ -124,11 +130,15 @@ std::optional<uint32_t> changeDirectory(FAT32_Directory &dir, uint32_t currentCl
     return true; });
 
     if (dirFound)
+    {
+        deletedFilesMap.clear(); // prevent stale map from carrying through to next directory
         return targetCluster;
+    }
+
     return std::nullopt;
 }
 
-void directoryNav(FAT32_Directory &dir,FAT32_Recovery &rec)
+void directoryNav(FAT32_Directory &dir, FAT32_Recovery &rec)
 {
     uint32_t currentCluster = dir.getRootCluster();
 
@@ -142,9 +152,22 @@ void directoryNav(FAT32_Directory &dir,FAT32_Recovery &rec)
         {
             listDirectory(dir, currentCluster);
         }
-        else if (command  == "recover"){
-            std :: cin >> arg;
-            recoverFile(std::stoi(arg), rec, dir);
+        else if (command == "recover")
+        {
+            std ::cin >> arg;
+            try
+            {
+                int serial = std::stoi(arg);
+                recoverFile(serial, rec, dir);
+            }
+            catch (const std::invalid_argument &e)
+            {
+                std::cerr << "ERROR: Invalid serial. Please enter a valid number\n";
+            }
+            catch (const std::out_of_range &e)
+            {
+                std::cerr << "ERROR: Serial number too large\n";
+            }
         }
         else if (command == "cd")
         {
@@ -154,6 +177,7 @@ void directoryNav(FAT32_Directory &dir,FAT32_Recovery &rec)
             if (nextClusterOpt.has_value())
             {
                 uint32_t nextCluster = nextClusterOpt.value();
+
                 if (nextCluster == 0)
                 {
                     currentCluster = dir.getRootCluster();

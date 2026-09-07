@@ -9,3 +9,5 @@ test.cpp
 .vscode/
 mnt_test/
 recovery_test
+recovered/*
+!recovered/.gitkeep
